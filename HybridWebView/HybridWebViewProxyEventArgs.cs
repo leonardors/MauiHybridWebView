@@ -62,6 +62,8 @@
         /// </summary>
         public Stream? ResponseStream { get; set; } = null;
 
+        public int? ResponseStatusCode { get; set; } 
+
     }
 
     public enum HttpMethod

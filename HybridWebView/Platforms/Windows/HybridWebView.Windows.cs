@@ -75,6 +75,8 @@ namespace HybridWebView
                 Stream? contentStream = null;
                 IDictionary<string, string>? responseHeaders = null;
 
+                var statusCode = 200;
+
                 // Check to see if the request is a proxy request
                 if (relativePath == ProxyRequestPath || relativePath?.StartsWith($"{HybridWebView.ProxyRequestPath}\\") == true)
                 {
@@ -91,6 +93,7 @@ namespace HybridWebView
                         contentType = args.ResponseContentType ?? "text/plain";
                         contentStream = args.ResponseStream;
                         responseHeaders = args.ResponseHeaders;
+                        statusCode = args.ResponseStatusCode ?? statusCode;
                     }
                 }
 
@@ -121,7 +124,7 @@ namespace HybridWebView
 
                     eventArgs.Response = _coreWebView2Environment!.CreateWebResourceResponse(
                         Content: randomStream,
-                        StatusCode: 200,
+                        StatusCode: statusCode,
                         ReasonPhrase: "OK",
                         Headers: GetHeaderString(contentType, (int)randomStream.Size, responseHeaders)
                     );
