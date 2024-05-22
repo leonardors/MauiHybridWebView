@@ -20,6 +20,7 @@ namespace HybridWebView
             var requestUri = QueryStringHelper.RemovePossibleQueryString(fullUrl);
             
             var webView = (HybridWebView)_handler.VirtualView;
+            var statusCode = 200;
 
             if (new Uri(requestUri) is Uri uri && HybridWebView.AppOriginUri.IsBaseOf(uri))
             {
@@ -64,6 +65,7 @@ namespace HybridWebView
                         contentType = args.ResponseContentType ?? "text/plain";
                         contentStream = args.ResponseStream;
                         responseHeaders = args.ResponseHeaders;
+                        statusCode = args.ResponseStatusCode ?? statusCode;
                     }
                 }
 
@@ -90,7 +92,7 @@ namespace HybridWebView
                 else
                 {
                     // TODO: We don't know the content length because Android doesn't tell us. Seems to work without it!
-                    return new WebResourceResponse(contentType, "UTF-8", 200, "OK", GetHeaders(contentType, responseHeaders), contentStream);
+                    return new WebResourceResponse(contentType, "UTF-8", statusCode, "OK", GetHeaders(contentType, responseHeaders), contentStream);
                 }
             }
             else

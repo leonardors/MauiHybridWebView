@@ -106,6 +106,7 @@ namespace HybridWebView
             private async Task<(byte[] ResponseBytes, string ContentType, int StatusCode, IDictionary<string, string>? headers)> GetResponseBytes(IWKUrlSchemeTask urlSchemeTask)
             {
                 var url = urlSchemeTask.Request.Url?.AbsoluteString ?? "";
+                var statusCode = 200;
                 
                 string contentType;
 
@@ -156,6 +157,7 @@ namespace HybridWebView
                             contentType = args.ResponseContentType ?? "text/plain";
                             contentStream = args.ResponseStream;
                             responseHeaders = args.ResponseHeaders;
+                            statusCode = args.ResponseStatusCode ?? statusCode;
                         }
                     }
 
@@ -168,7 +170,7 @@ namespace HybridWebView
                     {
                         using var ms = new MemoryStream();
                         contentStream.CopyTo(ms);
-                        return (ms.ToArray(), contentType, StatusCode: 200, responseHeaders);
+                        return (ms.ToArray(), contentType, StatusCode: statusCode, responseHeaders);
                     }
 
                     var assetPath = Path.Combine(bundleRootDir, relativePath);
