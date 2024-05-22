@@ -18,9 +18,7 @@ namespace HybridWebView
         {
             var fullUrl = request?.Url?.ToString();
             var requestUri = QueryStringHelper.RemovePossibleQueryString(fullUrl);
-            var method = request?.Method;
-            var headers = request?.RequestHeaders;
-
+            
             var webView = (HybridWebView)_handler.VirtualView;
 
             if (new Uri(requestUri) is Uri uri && HybridWebView.AppOriginUri.IsBaseOf(uri))
@@ -51,7 +49,12 @@ namespace HybridWebView
                 // Check to see if the request is a proxy request.
                 if (relativePath == HybridWebView.ProxyRequestPath || relativePath?.StartsWith($"{HybridWebView.ProxyRequestPath}\\") == true)
                 {
-                    var args = new HybridWebViewProxyEventArgs(fullUrl, method, headers);
+                    var method = request?.Method;
+                    var headers = request?.RequestHeaders;
+                    //var requestData = request.
+
+                    // TODO: Capture request body
+                    var args = new HybridWebViewProxyEventArgs(fullUrl, method, headers, null);
 
                     // TODO: Don't block async. Consider making this an async call, and then calling DidFinish when done
                     webView.OnProxyRequestMessage(args).Wait();

@@ -104,9 +104,6 @@ namespace HybridWebView
             private async Task<(byte[] ResponseBytes, string ContentType, int StatusCode, IDictionary<string, string>? headers)> GetResponseBytes(IWKUrlSchemeTask urlSchemeTask)
             {
                 var url = urlSchemeTask.Request.Url?.AbsoluteString ?? "";
-                var method = urlSchemeTask.Request.HttpMethod;
-                var requestHeaders = urlSchemeTask.Request.Headers?.ToDictionary(p => p.Key.ToString(), p => p.Value.ToString());
-
                 string contentType;
 
                 string fullUrl = url;
@@ -143,7 +140,11 @@ namespace HybridWebView
                     // Check to see if the request is a proxy request.
                     if (relativePath == HybridWebView.ProxyRequestPath || relativePath?.StartsWith($"{HybridWebView.ProxyRequestPath}\\") == true)
                     {
-                        var args = new HybridWebViewProxyEventArgs(fullUrl, method, requestHeaders);
+                        var method = urlSchemeTask.Request.HttpMethod;
+                        var requestHeaders = urlSchemeTask.Request.Headers?.ToDictionary(p => p.Key.ToString(), p => p.Value.ToString());
+                        var requestData = new MemoryStream(urlSchemeTask.Request.Body.ToArray());                        
+
+                        var args = new HybridWebViewProxyEventArgs(fullUrl, method, requestHeaders, requestData);
 
                         await hwv.OnProxyRequestMessage(args);
 

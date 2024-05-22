@@ -47,9 +47,8 @@ namespace HybridWebView
             // Get a deferral object so that WebView2 knows there's some async stuff going on. We call Complete() at the end of this method.
             using var deferral = eventArgs.GetDeferral();
 
-            var requestUri = QueryStringHelper.RemovePossibleQueryString(eventArgs.Request.Uri);
-            var method = eventArgs.Request.Method;
             var headers = eventArgs.Request.Headers.ToDictionary(p => p.Key, p => p.Value);
+            var requestUri = QueryStringHelper.RemovePossibleQueryString(eventArgs.Request.Uri);
 
             if (new Uri(requestUri) is Uri uri && AppOriginUri.IsBaseOf(uri))
             {
@@ -80,8 +79,11 @@ namespace HybridWebView
                 if (relativePath == ProxyRequestPath || relativePath?.StartsWith($"{HybridWebView.ProxyRequestPath}\\") == true)
                 {
                     var fullUrl = eventArgs.Request.Uri;
+                    var method = eventArgs.Request.Method;
 
-                    var args = new HybridWebViewProxyEventArgs(fullUrl, method, headers);
+                    var requestData = eventArgs.Request?.Content?.AsStream();
+
+                    var args = new HybridWebViewProxyEventArgs(fullUrl, method, headers, requestData);
                     await OnProxyRequestMessage(args);
 
                     if (args.ResponseStream != null)

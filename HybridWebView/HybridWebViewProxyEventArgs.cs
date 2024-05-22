@@ -9,11 +9,12 @@
         /// Creates a new instance of <see cref="HybridWebViewProxyEventArgs"/>.
         /// </summary>
         /// <param name="fullUrl">The full request URL.</param>
-        public HybridWebViewProxyEventArgs(string fullUrl, string? method, IDictionary<string, string>? headers)
+        public HybridWebViewProxyEventArgs(string fullUrl, string? method, IDictionary<string, string>? headers, Stream? requestStream)
         {
             Url = fullUrl;
             QueryParams = QueryStringHelper.GetKeyValuePairs(fullUrl);
             RequestHeaders = headers ?? new Dictionary<string, string>();
+            RequestStream = requestStream;
 
             if (Enum.TryParse(method ?? "GET", true, out HttpMethod methodResult))
             {
@@ -40,6 +41,11 @@
         /// Header strings values extracted from the request.
         /// </summary>
         public IDictionary<string, string> RequestHeaders { get; }
+
+        /// <summary>
+        /// Stream values extracted from the request.
+        /// </summary>
+        public Stream? RequestStream { get; }
 
         /// <summary>
         /// The response headers to be used to respond to the request.
