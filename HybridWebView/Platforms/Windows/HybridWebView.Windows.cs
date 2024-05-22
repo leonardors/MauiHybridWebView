@@ -123,7 +123,7 @@ namespace HybridWebView
                         Content: randomStream,
                         StatusCode: 200,
                         ReasonPhrase: "OK",
-                        Headers: GetHeaderString(contentType, (int)randomStream.Size, headers)
+                        Headers: GetHeaderString(contentType, (int)randomStream.Size, responseHeaders)
                     );
 
                     randomStream = null;
