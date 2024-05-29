@@ -34,14 +34,7 @@ namespace HybridWebView
                 }
                 else
                 {
-                    var requestExtension = Path.GetExtension(relativePath);
-                    contentType = requestExtension switch
-                    {
-                        ".htm" or ".html" => "text/html",
-                        ".js" => "application/javascript",
-                        ".css" => "text/css",
-                        _ => "text/plain",
-                    };
+                    contentType = relativePath.MimeType();
                 }
 
                 Stream? contentStream = null;
