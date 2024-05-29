@@ -135,7 +135,7 @@ namespace HybridWebView
                     IDictionary<string, string>? responseHeaders = null;
 
                     // Check to see if the request is a proxy request.
-                    if (relativePath == HybridWebView.ProxyRequestPath || relativePath?.StartsWith($"{HybridWebView.ProxyRequestPath}\\") == true)
+                    if (relativePath == HybridWebView.ProxyRequestPath || relativePath?.StartsWith($"{HybridWebView.ProxyRequestPath}/") == true)
                     {
                         var method = urlSchemeTask.Request.HttpMethod;
                         var requestHeaders = urlSchemeTask.Request.Headers?.ToDictionary(p => p.Key.ToString(), p => p.Value.ToString());
