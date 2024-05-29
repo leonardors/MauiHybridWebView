@@ -139,8 +139,13 @@ namespace HybridWebView
                     {
                         var method = urlSchemeTask.Request.HttpMethod;
                         var requestHeaders = urlSchemeTask.Request.Headers?.ToDictionary(p => p.Key.ToString(), p => p.Value.ToString());
-                        var requestData = new MemoryStream(urlSchemeTask.Request.Body.ToArray());
-
+                        MemoryStream? requestData = null;
+                        
+                        if (urlSchemeTask.Request?.Body != null)
+                        {
+                            requestData = new MemoryStream(urlSchemeTask.Request.Body.ToArray());
+                        }
+                        
                         var args = new HybridWebViewProxyEventArgs(fullUrl, method, requestHeaders, requestData);
 
                         await hwv.OnProxyRequestMessage(args);
