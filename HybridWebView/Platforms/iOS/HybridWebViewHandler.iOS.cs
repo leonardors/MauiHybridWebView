@@ -1,5 +1,6 @@
 ﻿using Foundation;
 using Microsoft.Maui.Platform;
+using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.Reflection.Metadata;
@@ -15,6 +16,7 @@ namespace HybridWebView
             var config = new WKWebViewConfiguration();
             config.UserContentController.AddScriptMessageHandler(new WebViewScriptMessageHandler(MessageReceived), "webwindowinterop");
             config.SetUrlSchemeHandler(new SchemeHandler(this), urlScheme: "app");
+            config.LimitsNavigationsToAppBoundDomains = false;
 
             // Legacy Developer Extras setting.
             var enableWebDevTools = ((HybridWebView)VirtualView).EnableWebDevTools;
@@ -69,41 +71,100 @@ namespace HybridWebView
             [SupportedOSPlatform("ios11.0")]
             public async void StartUrlSchemeTask(WKWebView webView, IWKUrlSchemeTask urlSchemeTask)
             {
+
                 var responseData = await GetResponseBytes(urlSchemeTask);
+                var locationKey = (NSString)"Location";
 
-                if (responseData.StatusCode == 200)
+                var keys = responseData.headers?.Keys?.Select(p => new NSString(p)) ?? Array.Empty<NSString>();
+                var values = responseData.headers?.Values?.Select(p => new NSString(p)) ?? Array.Empty<NSString>();
+
+                using (var dic = new NSMutableDictionary<NSString, NSString>(keys.ToArray(), values.ToArray()))
                 {
-                    var keys = responseData.headers?.Keys?.Select(p=> new NSString(p)) ?? Array.Empty<NSString>();
-                    var values = responseData.headers?.Values?.Select(p => new NSString(p)) ?? Array.Empty<NSString>();
+                    dic.Add((NSString)"Access-Control-Allow-Origin", (NSString)("*"));
+                    dic.Add((NSString)"Access-Control-Allow-Methods", (NSString)("GET, POST, PUT, DELETE, OPTIONS"));
+                    dic.Add((NSString)"Access-Control-Allow-Credentials", (NSString)("true"));
+                    // dic.Add((NSString)"Access-Control-Allow-Headers", (NSString)("*"));
 
-                    using (var dic = new NSMutableDictionary<NSString, NSString>(keys.ToArray(), values.ToArray()))
+                    // Handle redirection if necessary
+                    if (responseData.StatusCode >= 300 && responseData.StatusCode < 400 && dic.ContainsKey(locationKey))
                     {
-                        if (dic.ContainsKey((NSString)"Content-Length") == false)
-                        {
-                            dic.Add((NSString)"Content-Length", (NSString)(responseData.ResponseBytes.Length.ToString(CultureInfo.InvariantCulture)));
-                        }
+                        // var location = (NSString)"https://digitalpages.com.br";// dic[locationKey];
+                        var location = dic[locationKey];
+                        var newUrl = new NSUrl(location);
+                        // var redirectUrl = new NSUrl(location);
 
-                        if (dic.ContainsKey((NSString)"Content-Type") == false)
-                        {
-                            dic.Add((NSString)"Content-Type", (NSString)responseData.ContentType);
-                        }
-                       
-                        // Disable local caching. This will prevent user scripts from executing correctly.
-                        dic.Add((NSString)"Cache-Control", (NSString)"no-cache, max-age=0, must-revalidate, no-store");
+                        // dic.Clear();
+                        // dic.Add(locationKey, new NSString(newUrl.AbsoluteString));
+                        // dic.Add((NSString)"Content-Length", (NSString)("0"));
                         
-                        if (urlSchemeTask.Request.Url != null)
-                        {
-                            using var response = new NSHttpUrlResponse(urlSchemeTask.Request.Url, responseData.StatusCode, "HTTP/1.1", dic);
-                            urlSchemeTask.DidReceiveResponse(response);
-                        }
+                        // dic.Add((NSString)"Referer", (NSString)(urlSchemeTask.Request.Url.AbsoluteString));
+                        // dic.Add((NSString)"Referer", (NSString)($"{urlSchemeTask.Request.Url.Scheme}://{urlSchemeTask.Request.Url.Host}"));
+                        // dic.Add((NSString)"Content-Type", (NSString)("text/html"));
+
+                        Debug.WriteLine($"original: {urlSchemeTask.Request.Url} para:{newUrl}");
+
+
+                        // var p1 = new NSHttpUrlResponse(urlSchemeTask.Request.Url, "text/html", 0, "Found");
+                        // urlSchemeTask.DidReceiveResponse(p1);
+                        // urlSchemeTask.DidFinish();
+
+                        // var redirectResponse = new NSHttpUrlResponse(newUrl, 302, "HTTP/1.1", null);
+                        // var redirectResponse = new NSHttpUrlResponse(newUrl, 302, "HTTP/1.1", dic);
+                        // var redirectResponse = new NSHttpUrlResponse(urlSchemeTask.Request.Url, 302, "HTTP/1.1", dic);
+                        // var redirectResponse = new NSUrlResponse(newUrl, 302, "Found",);
+                        var redirectResponse = new NSUrlResponse(urlSchemeTask.Request.Url, "text/html", 0, string.Empty);
+                    
+                    //    redirectResponse.AllHeaderFields.Concat(dic);
+                        
+                        urlSchemeTask.DidReceiveResponse(redirectResponse);
+
+
+                        // redirectResponse = new NSHttpUrlResponse(urlSchemeTask.Request.Url, 302, "HTTP/1.1", dic);
+                        // urlSchemeTask.DidReceiveResponse(redirectResponse);
+                        // urlSchemeTask.DidReceiveData(NSData.FromString("<div>leondsd</div>"));
+                        urlSchemeTask.DidFinish();
+
+
+                        // using )
+                        // {
+                        //     urlSchemeTask.DidReceiveResponse(redirectResponse);
+                        //     urlSchemeTask.DidFinish();
+                        // }
+
+                        return;
                     }
 
-                    urlSchemeTask.DidReceiveData(NSData.FromArray(responseData.ResponseBytes));
-                    urlSchemeTask.DidFinish();
+                    // Disable local caching. This will prevent user scripts from executing correctly.
+                    dic.Add((NSString)"Cache-Control", (NSString)"no-cache, max-age=0, must-revalidate, no-store");
+                    // dic.Add((NSString)"Content-Security-Policy", (NSString)"frame-src 'self' https://* app://* app://*");
+
+                    if (dic.ContainsKey((NSString)"Content-Length") == false && responseData.ResponseStream != null)
+                    {
+                        dic.Add((NSString)"Content-Length", (NSString)(responseData.ResponseStream.Length.ToString(CultureInfo.InvariantCulture)));
+                    }
+
+                    if (dic.ContainsKey((NSString)"Content-Type") == false)
+                    {
+                        dic.Add((NSString)"Content-Type", (NSString)responseData.ContentType);
+                    }
+
+                    if (urlSchemeTask.Request.Url != null)
+                    {
+                        using var response = new NSHttpUrlResponse(urlSchemeTask.Request.Url, 200, "HTTP/1.1", dic);
+                        urlSchemeTask.DidReceiveResponse(response);
+                    }
                 }
+
+                if (responseData.ResponseStream != null) {
+                    
+                    var data = NSData.FromStream(responseData.ResponseStream);
+                    if (data != null) urlSchemeTask.DidReceiveData(data);
+                }
+
+                urlSchemeTask.DidFinish();
             }
 
-            private async Task<(byte[] ResponseBytes, string ContentType, int StatusCode, IDictionary<string, string>? headers)> GetResponseBytes(IWKUrlSchemeTask urlSchemeTask)
+            private async Task<(Stream ResponseStream, string ContentType, int StatusCode, IDictionary<string, string>? headers)> GetResponseBytes(IWKUrlSchemeTask urlSchemeTask)
             {
                 var url = urlSchemeTask.Request.Url?.AbsoluteString ?? "";
                 var statusCode = 200;
@@ -120,6 +181,8 @@ namespace HybridWebView
                     var hwv = (HybridWebView)_webViewHandler.VirtualView;
 
                     var bundleRootDir = Path.Combine(NSBundle.MainBundle.ResourcePath, hwv.HybridAssetRoot!);
+
+                    Debug.WriteLine($"Relative path: {relativePath}");
 
                     if (string.IsNullOrEmpty(relativePath))
                     {
@@ -158,6 +221,7 @@ namespace HybridWebView
                             statusCode = args.ResponseStatusCode ?? statusCode;
                         }
                     }
+                   
 
                     if (contentStream == null)
                     {
@@ -166,25 +230,24 @@ namespace HybridWebView
 
                     if (contentStream is not null)
                     {
-                        using var ms = new MemoryStream();
-                        contentStream.CopyTo(ms);
-                        return (ms.ToArray(), contentType, StatusCode: statusCode, responseHeaders);
+                        return (contentStream, contentType, StatusCode: statusCode, responseHeaders);
                     }
 
                     var assetPath = Path.Combine(bundleRootDir, relativePath);
 
                     if (File.Exists(assetPath))
                     {
-                        return (File.ReadAllBytes(assetPath), contentType, StatusCode: 200, responseHeaders);
+                        return (File.OpenRead(assetPath), contentType, StatusCode: 200, responseHeaders);
                     }
                 }
 
-                return (Array.Empty<byte>(), ContentType: string.Empty, StatusCode: 404, null);
+                return (new MemoryStream(), ContentType: string.Empty, StatusCode: 404, null);
             }
 
             [Export("webView:stopURLSchemeTask:")]
             public void StopUrlSchemeTask(WKWebView webView, IWKUrlSchemeTask urlSchemeTask)
             {
+                var sss = 1;;;
             }
         }
     }
