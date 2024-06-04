@@ -91,46 +91,10 @@ namespace HybridWebView
                         // var location = (NSString)"https://digitalpages.com.br";// dic[locationKey];
                         var location = dic[locationKey];
                         var newUrl = new NSUrl(location);
-                        // var redirectUrl = new NSUrl(location);
-
-                        // dic.Clear();
-                        // dic.Add(locationKey, new NSString(newUrl.AbsoluteString));
-                        // dic.Add((NSString)"Content-Length", (NSString)("0"));
-                        
-                        // dic.Add((NSString)"Referer", (NSString)(urlSchemeTask.Request.Url.AbsoluteString));
-                        // dic.Add((NSString)"Referer", (NSString)($"{urlSchemeTask.Request.Url.Scheme}://{urlSchemeTask.Request.Url.Host}"));
-                        // dic.Add((NSString)"Content-Type", (NSString)("text/html"));
-
-                        Debug.WriteLine($"original: {urlSchemeTask.Request.Url} para:{newUrl}");
-
-
-                        // var p1 = new NSHttpUrlResponse(urlSchemeTask.Request.Url, "text/html", 0, "Found");
-                        // urlSchemeTask.DidReceiveResponse(p1);
-                        // urlSchemeTask.DidFinish();
-
-                        // var redirectResponse = new NSHttpUrlResponse(newUrl, 302, "HTTP/1.1", null);
-                        // var redirectResponse = new NSHttpUrlResponse(newUrl, 302, "HTTP/1.1", dic);
-                        // var redirectResponse = new NSHttpUrlResponse(urlSchemeTask.Request.Url, 302, "HTTP/1.1", dic);
-                        // var redirectResponse = new NSUrlResponse(newUrl, 302, "Found",);
                         var redirectResponse = new NSUrlResponse(urlSchemeTask.Request.Url, "text/html", 0, string.Empty);
-                    
-                    //    redirectResponse.AllHeaderFields.Concat(dic);
-                        
+
                         urlSchemeTask.DidReceiveResponse(redirectResponse);
-
-
-                        // redirectResponse = new NSHttpUrlResponse(urlSchemeTask.Request.Url, 302, "HTTP/1.1", dic);
-                        // urlSchemeTask.DidReceiveResponse(redirectResponse);
-                        // urlSchemeTask.DidReceiveData(NSData.FromString("<div>leondsd</div>"));
                         urlSchemeTask.DidFinish();
-
-
-                        // using )
-                        // {
-                        //     urlSchemeTask.DidReceiveResponse(redirectResponse);
-                        //     urlSchemeTask.DidFinish();
-                        // }
-
                         return;
                     }
 
@@ -157,6 +121,7 @@ namespace HybridWebView
 
                 if (responseData.ResponseStream != null) {
                     
+                    Console.WriteLine($"response: {urlSchemeTask.Request?.Url?.AbsoluteString}  size: {responseData.ResponseStream.Length} position: {responseData.ResponseStream.Position}");
                     var data = NSData.FromStream(responseData.ResponseStream);
                     if (data != null) urlSchemeTask.DidReceiveData(data);
                 }
@@ -243,12 +208,14 @@ namespace HybridWebView
 
                 return (new MemoryStream(), ContentType: string.Empty, StatusCode: 404, null);
             }
+            
 
             [Export("webView:stopURLSchemeTask:")]
             public void StopUrlSchemeTask(WKWebView webView, IWKUrlSchemeTask urlSchemeTask)
             {
-                var sss = 1;;;
             }
         }
+
+        
     }
 }
