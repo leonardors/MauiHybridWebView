@@ -178,7 +178,7 @@ namespace HybridWebView
 
                         await hwv.OnProxyRequestMessage(args);
 
-                        if (args.ResponseStream != null)
+                        if (args.ResponseStatusCode != null)
                         {
                             contentType = args.ResponseContentType ?? "text/plain";
                             contentStream = args.ResponseStream;
