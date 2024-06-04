@@ -114,7 +114,7 @@ namespace HybridWebView
 
                     if (urlSchemeTask.Request.Url != null)
                     {
-                        using var response = new NSHttpUrlResponse(urlSchemeTask.Request.Url, 200, "HTTP/1.1", dic);
+                        using var response = new NSHttpUrlResponse(urlSchemeTask.Request.Url, responseData.StatusCode, "HTTP/1.1", dic);
                         urlSchemeTask.DidReceiveResponse(response);
                     }
                 }
@@ -129,10 +129,10 @@ namespace HybridWebView
                 urlSchemeTask.DidFinish();
             }
 
-            private async Task<(Stream ResponseStream, string ContentType, int StatusCode, IDictionary<string, string>? headers)> GetResponseBytes(IWKUrlSchemeTask urlSchemeTask)
+            private async Task<(Stream? ResponseStream, string ContentType, int StatusCode, IDictionary<string, string>? headers)> GetResponseBytes(IWKUrlSchemeTask urlSchemeTask)
             {
                 var url = urlSchemeTask.Request.Url?.AbsoluteString ?? "";
-                var statusCode = 200;
+                int? statusCode = null;
                 
                 string contentType;
 
@@ -187,15 +187,20 @@ namespace HybridWebView
                         }
                     }
                    
+                   if (relativePath?.Contains("/default/target") == true)
+                   {
+                    var s = 1;;;
+                   }
 
-                    if (contentStream == null)
+                    if (statusCode == null)
                     {
                         contentStream = KnownStaticFileProvider.GetKnownResourceStream(relativePath!);
+                        if (contentStream != null) statusCode = 200;
                     }
 
-                    if (contentStream is not null)
+                    if (statusCode != null)
                     {
-                        return (contentStream, contentType, StatusCode: statusCode, responseHeaders);
+                        return (contentStream, contentType, StatusCode: statusCode.Value, responseHeaders);
                     }
 
                     var assetPath = Path.Combine(bundleRootDir, relativePath);
