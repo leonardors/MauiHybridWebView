@@ -67,8 +67,7 @@ namespace HybridWebView
 
                 Stream? contentStream = null;
                 IDictionary<string, string>? responseHeaders = null;
-
-                var statusCode = 200;
+                int? statusCode = null;
 
                 // Check to see if the request is a proxy request
                 if (relativePath == ProxyRequestPath || relativePath?.StartsWith($"{HybridWebView.ProxyRequestPath}\\") == true)
@@ -81,7 +80,7 @@ namespace HybridWebView
                     var args = new HybridWebViewProxyEventArgs(fullUrl, method, headers, requestData);
                     await OnProxyRequestMessage(args);
 
-                    if (args.ResponseStream != null)
+                    if (args.ResponseStatusCode != null)
                     {
                         contentType = args.ResponseContentType ?? "text/plain";
                         contentStream = args.ResponseStream;
@@ -90,18 +89,22 @@ namespace HybridWebView
                     }
                 }
 
-                if (contentStream is null)
+                if (statusCode is null)
                 {
                     contentStream = KnownStaticFileProvider.GetKnownResourceStream(relativePath!);
+                    if (contentStream != null) statusCode = 200;
                 }
 
-                if (contentStream is null)
+                if (statusCode is null)
                 {
                     var assetPath = Path.Combine(HybridAssetRoot!, relativePath!);
+                    
                     contentStream = await GetAssetStreamAsync(assetPath);
+
+                    if (contentStream != null) statusCode = 200;
                 }
 
-                if (contentStream is null)
+                if (statusCode is null)
                 {
                     var notFoundContent = "Resource not found (404)";
                     eventArgs.Response = _coreWebView2Environment!.CreateWebResourceResponse(
@@ -114,12 +117,13 @@ namespace HybridWebView
                 else
                 {
                     var randomStream = await CopyContentToRandomAccessStreamAsync(contentStream);
+                    var size = randomStream != null ? (int)randomStream.Size : 0;
 
                     eventArgs.Response = _coreWebView2Environment!.CreateWebResourceResponse(
                         Content: randomStream,
-                        StatusCode: statusCode,
+                        StatusCode: statusCode.Value,
                         ReasonPhrase: "OK",
-                        Headers: GetHeaderString(contentType, (int)randomStream.Size, responseHeaders)
+                        Headers: GetHeaderString(contentType, size, responseHeaders)
                     );
 
                     randomStream = null;
@@ -131,8 +135,10 @@ namespace HybridWebView
             // Notify WebView2 that the deferred (async) operation is complete and we set a response.
             deferral.Complete();
 
-            async Task<IRandomAccessStream> CopyContentToRandomAccessStreamAsync(Stream content)
+            async Task<IRandomAccessStream> CopyContentToRandomAccessStreamAsync(Stream? content)
             {
+                if (content == null) return null;
+
                 using var memStream = new MemoryStream();
                 await content.CopyToAsync(memStream);
                 var randomAccessStream = new InMemoryRandomAccessStream();
