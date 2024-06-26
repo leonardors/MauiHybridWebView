@@ -22,6 +22,7 @@ namespace HybridWebView
             config.UserContentController.AddScriptMessageHandler(new WebViewScriptMessageHandler(MessageReceived), "webwindowinterop");
             config.SetUrlSchemeHandler(new SchemeHandler(this), urlScheme: "app");
             config.LimitsNavigationsToAppBoundDomains = false;
+            config.AllowsInlineMediaPlayback = true;
 
             WKContentRuleListStore.DefaultStore.CompileContentRuleList("MWWKWebViewContentRules", Rules, (r, e)=>
             {
