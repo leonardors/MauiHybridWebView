@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.IO.Compression;
 using System.Text;
+using HttpMethod = System.Net.Http.HttpMethod;
 
 namespace MauiCSharpInteropWebView;
 

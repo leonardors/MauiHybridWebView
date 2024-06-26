@@ -41,10 +41,10 @@
 		<AssemblyVersion>$(VersionMain)</AssemblyVersion>
 		<FileVersion>$(VersionMain)</FileVersion>
 
-		<PackageId>EJL.MauiHybridWebView</PackageId>
+		<PackageId>LRS.MauiHybridWebView</PackageId>
 		<Description>A HybridWebView control for .NET MAUI that enables embedding web UI (HTML/JS/CSS) in cross-platform native apps.</Description>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<Authors>Eilon Lipton</Authors>
+		<Authors>Eilon Lipton,Leonardo R da Silva</Authors>
 		<NeutralLanguage>en</NeutralLanguage>
 		<RepositoryUrl>https://github.com/Eilon/MauiCSharpInteropWebView.git</RepositoryUrl>
 		<PackageProjectUrl>https://github.com/Eilon/MauiCSharpInteropWebView</PackageProjectUrl>
@@ -57,6 +57,7 @@
 
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 	</PropertyGroup>
 
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
