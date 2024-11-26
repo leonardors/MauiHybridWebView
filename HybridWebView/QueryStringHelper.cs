@@ -33,7 +33,7 @@
                     result = query
                         .Substring(1)
                         .Split('&')
-                        .Select(p => p.Split('='))
+                        .Select(p => p.Split('=', 2))
                         .ToDictionary(p => p[0], p => Uri.UnescapeDataString(p[1]));
                 }
             }
