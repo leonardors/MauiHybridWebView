@@ -30,7 +30,6 @@ namespace HybridWebView
             PlatformWebView.UIDelegate = new CustomUiDelegate();
 
             PlatformWebView.Configuration.Preferences.SetValueForKey((NSString)"TRUE",  (NSString)"allowFileAccessFromFileURLs");
-            // PlatformWebView.SetValueForKey((NSString)"TRUE",  (NSString)"allowUniversalAccessFromFileURLs");
         }
     }
 
@@ -62,16 +61,6 @@ namespace HybridWebView
                 decisionHandler(WKNavigationActionPolicy.Cancel);
             }
         }
-
-        // public override void DidFailNavigation(WKWebView webView, WKNavigation navigation, NSError error)
-        // {
-        //     base.DidFailNavigation(webView, navigation, error);
-        // }
-
-        // public override void DidFailProvisionalNavigation(WKWebView webView, WKNavigation navigation, NSError error)
-        // {
-        //     base.DidFailProvisionalNavigation(webView, navigation, error);
-        // }
 
         public override void DidFailProvisionalNavigation(WKWebView webView, WKNavigation navigation, NSError error)
         {

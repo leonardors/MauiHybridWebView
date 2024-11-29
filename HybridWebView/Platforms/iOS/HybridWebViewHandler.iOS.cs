@@ -45,8 +45,6 @@ namespace HybridWebView
                 platformView.SetValueForKey(NSObject.FromObject(enableWebDevTools), new NSString("inspectable"));
             }
 
-            
-
             return platformView;
         }
 
@@ -91,11 +89,6 @@ namespace HybridWebView
             public async void StartUrlSchemeTask(WKWebView webView, IWKUrlSchemeTask urlSchemeTask)
             {
                 Pending.Add(urlSchemeTask);
-
-                if (urlSchemeTask.Request.Url.AbsoluteString.Contains("/target"))
-                {
-                    Debug.WriteLine($"start method: {urlSchemeTask.Request.HttpMethod} url: {urlSchemeTask.Request.Url.AbsoluteString}");
-                }
 
                 try
                 {
@@ -145,23 +138,24 @@ namespace HybridWebView
                 dic.Add((NSString)"Access-Control-Allow-Credentials", (NSString)"true");
                 dic.Add((NSString)"Accept-Ranges", (NSString)"bytes");
 
-                if (urlSchemeTask.Request.Url.AbsoluteString.Contains("/target"))
-                {
-                    Debug.WriteLine($"response method: {urlSchemeTask.Request.HttpMethod} url: {urlSchemeTask.Request.Url.AbsoluteString} type: {responseData.ContentType} status:{responseData.StatusCode}");
-                }
-
                 if (Pending.Contains(urlSchemeTask) == false) return;
 
-
-           
-                    // using var response = new NSHttpUrlResponse(urlSchemeTask.Request.Url, responseData.StatusCode, "HTTP/1.1", dic);
                     var response = new NSHttpUrlResponse(urlSchemeTask.Request.Url, responseData.StatusCode, "HTTP/1.1", dic);
                     urlSchemeTask.DidReceiveResponse(response);
-                    
-                    if (responseData.ResponseStream != null) 
+
+                    if (responseData.ResponseStream != null)
                     {
-                        var data = NSData.FromStream(responseData.ResponseStream);
-                        if (data != null) urlSchemeTask.DidReceiveData(data);
+
+                        byte[] buffer = new byte[8192];
+                        int bytesRead;
+
+                        var stream = responseData.ResponseStream;
+
+                        while ((bytesRead = await responseData.ResponseStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                        {
+                            var dataChunk = NSData.FromArray(buffer.Take(bytesRead).ToArray());
+                            urlSchemeTask.DidReceiveData(dataChunk);
+                        }
                     }
             
                     urlSchemeTask.DidFinish();

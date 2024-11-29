@@ -139,11 +139,7 @@ namespace HybridWebView
             {
                 if (content == null) return null;
 
-                using var memStream = new MemoryStream();
-                await content.CopyToAsync(memStream);
-                var randomAccessStream = new InMemoryRandomAccessStream();
-                await randomAccessStream.WriteAsync(memStream.GetWindowsRuntimeBuffer());
-                return randomAccessStream;
+                return content.AsInputStream().AsStreamForRead().AsRandomAccessStream();
             }
         }
 

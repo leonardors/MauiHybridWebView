@@ -32,8 +32,8 @@
 
 	<PropertyGroup>
 		<!-- Change these two values to control the version -->
-		<VersionMain>1.0.0</VersionMain>
-		<VersionPrelease>-preview7</VersionPrelease>
+		<VersionMain>1.0.2</VersionMain>
+		<VersionPrelease>-beta01</VersionPrelease>
 	</PropertyGroup>
 
 	<PropertyGroup>
