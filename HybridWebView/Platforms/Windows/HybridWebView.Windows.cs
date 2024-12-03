@@ -116,6 +116,7 @@ namespace HybridWebView
                 }
                 else
                 {
+
                     var randomStream = await CopyContentToRandomAccessStreamAsync(contentStream);
                     var size = randomStream != null ? (int)randomStream.Size : 0;
 
@@ -129,7 +130,7 @@ namespace HybridWebView
                     randomStream = null;
                 }
 
-                contentStream?.Dispose();
+                //contentStream?.Dispose();
             }
 
             // Notify WebView2 that the deferred (async) operation is complete and we set a response.
@@ -138,6 +139,16 @@ namespace HybridWebView
             async Task<IRandomAccessStream> CopyContentToRandomAccessStreamAsync(Stream? content)
             {
                 if (content == null) return null;
+
+                if (content.CanSeek == false)
+                {
+                    var memoryStream = new MemoryStream();
+                    await content.CopyToAsync(memoryStream);
+
+                    // Resetar a posição para o início para que o stream possa ser lido novamente
+                    memoryStream.Position = 0;
+                    return memoryStream.AsRandomAccessStream();
+                }
 
                 return content.AsInputStream().AsStreamForRead().AsRandomAccessStream();
             }

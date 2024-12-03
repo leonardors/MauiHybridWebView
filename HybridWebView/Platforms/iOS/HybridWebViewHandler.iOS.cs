@@ -1,12 +1,16 @@
 ﻿using CoreFoundation;
 using Foundation;
 using Microsoft.Maui.Platform;
+using ObjCRuntime;
 using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
+using System.Net;
+using System.Net.Mime;
 using System.Reflection.Metadata;
 using System.Runtime.Versioning;
 using System.Text.Json.Serialization;
+using SystemConfiguration;
 using WebKit;
 
 namespace HybridWebView
@@ -23,6 +27,8 @@ namespace HybridWebView
             config.SetUrlSchemeHandler(new SchemeHandler(this), urlScheme: "app");
             config.LimitsNavigationsToAppBoundDomains = false;
             config.AllowsInlineMediaPlayback = true;
+            config.WebsiteDataStore = WKWebsiteDataStore.DefaultDataStore;
+
 
             WKContentRuleListStore.DefaultStore.CompileContentRuleList("MWWKWebViewContentRules", Rules, (r, e)=>
             {
@@ -93,77 +99,78 @@ namespace HybridWebView
                 try
                 {
 
-                var responseData = await GetResponseBytes(urlSchemeTask);
-                var locationKey = (NSString)"Location";
+                    var responseData = await GetResponseBytes(urlSchemeTask);
+                    var locationKey = (NSString)"Location";
 
-                var keys = responseData.headers?.Keys?.Select(p => new NSString(p)) ?? Array.Empty<NSString>();
-                var values = responseData.headers?.Values?.Select(p => new NSString(p)) ?? Array.Empty<NSString>();
+                    var keys = responseData.headers?.Keys?.Select(p => new NSString(p)) ?? Array.Empty<NSString>();
+                    var values = responseData.headers?.Values?.Select(p => new NSString(p)) ?? Array.Empty<NSString>();
 
-                var dic = new NSMutableDictionary<NSString, NSString>(keys.ToArray(), values.ToArray());
-                
-                // Handle redirection if necessary
-                if (responseData.StatusCode >= 300 && responseData.StatusCode < 400 && dic.ContainsKey(locationKey))
-                {
-                    // var location = (NSString)"https://digitalpages.com.br";// dic[locationKey];
-                    var location = dic[locationKey];
-                    var newUrl = new NSUrl(location);
-                    var redirectResponse = new NSUrlResponse(urlSchemeTask.Request.Url, "text/html", 0, string.Empty);
+                    var dic = new NSMutableDictionary<NSString, NSString>(keys.ToArray(), values.ToArray());
 
-                    urlSchemeTask.DidReceiveResponse(redirectResponse);
-                    urlSchemeTask.DidFinish();
-                    return;
-                }
+                    if (responseData.StatusCode >= 300 && responseData.StatusCode < 400 && dic.ContainsKey(locationKey))
+                    {
+                        var requestUrl = urlSchemeTask.Request.Url;
+                        var redirectResponse = new NSHttpUrlResponse(requestUrl, responseData.StatusCode, "HTTP/1.1", dic);
 
-                // Disable local caching. This will prevent user scripts from executing correctly.
-                dic.Add((NSString)"Cache-Control", (NSString)"no-cache, max-age=0, must-revalidate, no-store");
-                // dic.Add((NSString)"Content-Security-Policy", (NSString)"frame-src 'self' https://* app://* app://*");
+                        urlSchemeTask.DidReceiveResponse(redirectResponse);
+                        urlSchemeTask.DidFinish();
+                        return;
+                    }
 
-                if (dic.ContainsKey((NSString)"Content-Length") == false && responseData.ResponseStream != null)
-                {
-                    dic.Add((NSString)"Content-Length", (NSString)(responseData.ResponseStream.Length.ToString(CultureInfo.InvariantCulture)));
-                }
+                    if (dic.ContainsKey((NSString)"Content-Length") == false && responseData.ResponseStream != null)
+                    {
+                        dic.Add((NSString)"Content-Length", (NSString)(responseData.ResponseStream.Length.ToString(CultureInfo.InvariantCulture)));
+                    }
 
-                if (dic.ContainsKey((NSString)"Content-Type") == false)
-                {
-                    dic.Add((NSString)"Content-Type", (NSString)responseData.ContentType);
-                }
+                    if (dic.ContainsKey((NSString)"Cache-Control") == false)
+                    {
+                        dic.Add((NSString)"Cache-Control", (NSString)"no-cache, max-age=0, must-revalidate, no-store");
+                    }
 
-                if (dic.ContainsKey((NSString)"Access-Control-Allow-Origin"))
-                {
-                    dic.Remove((NSString)"Access-Control-Allow-Origin");
-                }
+                    if (dic.ContainsKey((NSString)"Content-Type") == false)
+                    {
+                        dic.Add((NSString)"Content-Type", (NSString)responseData.ContentType);
+                    }
 
-                dic.Add((NSString)"Access-Control-Expose-Headers", (NSString)string.Join(",",dic.Keys.ToList()));
-                dic.Add((NSString)"Access-Control-Allow-Origin", (NSString)"*");
-                dic.Add((NSString)"Access-Control-Allow-Credentials", (NSString)"true");
-                dic.Add((NSString)"Accept-Ranges", (NSString)"bytes");
+                    if (dic.ContainsKey((NSString)"Access-Control-Allow-Origin"))
+                    {
+                        dic.Remove((NSString)"Access-Control-Allow-Origin");
+                    }
 
-                if (Pending.Contains(urlSchemeTask) == false) return;
+                    dic.Add((NSString)"Access-Control-Expose-Headers", (NSString)string.Join(",", dic.Keys.ToList()));
+                    dic.Add((NSString)"Access-Control-Allow-Origin", (NSString)"*");
+                    dic.Add((NSString)"Access-Control-Allow-Credentials", (NSString)"true");
+                    //dic.Add((NSString)"Accept-Ranges", (NSString)"bytes");
+
+                    if (Pending.Contains(urlSchemeTask) == false) return;
 
                     var response = new NSHttpUrlResponse(urlSchemeTask.Request.Url, responseData.StatusCode, "HTTP/1.1", dic);
                     urlSchemeTask.DidReceiveResponse(response);
 
                     if (responseData.ResponseStream != null)
                     {
-
-                        byte[] buffer = new byte[8192];
+                        byte[] buffer = new byte[1024*10];
                         int bytesRead;
 
                         var stream = responseData.ResponseStream;
 
-                        while ((bytesRead = await responseData.ResponseStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                        while ((bytesRead = responseData.ResponseStream.Read(buffer, 0, buffer.Length)) > 0)
                         {
                             var dataChunk = NSData.FromArray(buffer.Take(bytesRead).ToArray());
                             urlSchemeTask.DidReceiveData(dataChunk);
                         }
                     }
-            
-                    urlSchemeTask.DidFinish();
 
-                    Pending.Remove(urlSchemeTask);
-                }catch(Exception e)
+                    urlSchemeTask.DidFinish();
+                    responseData.ResponseStream = null;
+                }
+                catch (Exception e)
                 {
                     Debug.WriteLine($"StartUrlSchemeTask {e.Message}");
+                }
+                finally
+                {
+                    Pending.Remove(urlSchemeTask);
                 }
             }
 
@@ -201,11 +208,9 @@ namespace HybridWebView
                     // Check to see if the request is a proxy request.
                     if (relativePath == HybridWebView.ProxyRequestPath || relativePath?.StartsWith($"{HybridWebView.ProxyRequestPath}/") == true)
                     {
-        
                         var method = urlSchemeTask.Request.HttpMethod;
                         var requestHeaders = urlSchemeTask.Request.Headers?.ToDictionary(p => p.Key.ToString(), p => p.Value.ToString());
 
-    
                         MemoryStream? requestData = null;
                         
                         if (urlSchemeTask.Request?.Body != null)
@@ -223,19 +228,24 @@ namespace HybridWebView
                             responseHeaders = args.ResponseHeaders;
                             statusCode = args.ResponseStatusCode ?? statusCode;
                         }
-
-    
                     }
                    
                     if (statusCode == null)
                     {
                         contentStream = KnownStaticFileProvider.GetKnownResourceStream(relativePath!);
-                        if (contentStream != null) statusCode = 200;
+
+                        if (contentStream != null)
+                        {
+                            statusCode = 200;
+
+                            if (responseHeaders == null) responseHeaders = new Dictionary<string, string>();
+
+                            responseHeaders["Cache-Control"] = $"public, max-age={TimeSpan.FromDays(1).TotalSeconds}, immutable";
+                        }
                     }
 
                     if (statusCode != null)
                     {
-    
                         return (contentStream, contentType, StatusCode: statusCode.Value, responseHeaders);
                     }
 
@@ -260,5 +270,15 @@ namespace HybridWebView
         }
 
         
+    }
+
+    public class TestTask :  IWKUrlSchemeTask
+    {
+        public NativeHandle Handle => throw new NotImplementedException();
+
+        public void Dispose()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

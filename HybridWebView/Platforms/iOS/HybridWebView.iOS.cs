@@ -44,6 +44,9 @@ namespace HybridWebView
         public override void DecidePolicy(WKWebView webView, WKNavigationAction navigationAction, Action<WKNavigationActionPolicy> decisionHandler)
         {
             Debug.WriteLine($"DecidePolicy: {navigationAction.Request.Url.AbsoluteString}");
+            decisionHandler(WKNavigationActionPolicy.Allow);
+
+            return;
 
             if (navigationAction.Request.Url.Scheme == "app")
             {
@@ -87,7 +90,7 @@ namespace HybridWebView
         public override void DidReceiveServerRedirectForProvisionalNavigation(WKWebView webView, WKNavigation navigation)
         {
             Console.WriteLine("DidReceiveServerRedirectForProvisionalNavigation");
-            base.DidReceiveServerRedirectForProvisionalNavigation(webView, navigation);
+            //base.DidReceiveServerRedirectForProvisionalNavigation(webView, navigation);
         }
 
         public override void ContentProcessDidTerminate(WKWebView webView)
